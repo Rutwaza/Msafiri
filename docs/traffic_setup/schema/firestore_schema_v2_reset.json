@@ -1,0 +1,83 @@
+{
+  "version": "v2-reset-2026-04-11",
+  "description": "Fresh traffic-only baseline after soft reset. Legacy flow moved to functions/legacy.",
+  "collections": {
+    "traffic_users": {
+      "docId": "{uid}",
+      "fields": {
+        "uid": "string",
+        "email": "string",
+        "displayName": "string",
+        "phone": "string",
+        "role": "rider | agency_staff | agency_admin | super_admin",
+        "status": "active | suspended | disabled",
+        "agencyId": "string|null",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      }
+    },
+    "agencies": {
+      "docId": "{agencyId}",
+      "fields": {
+        "name": "string",
+        "nameLower": "string",
+        "code": "string",
+        "active": "boolean",
+        "ownerUid": "string",
+        "adminPhone": "string",
+        "adminName": "string",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      }
+    },
+    "agency_members": {
+      "docId": "{uid}",
+      "fields": {
+        "agencyId": "string",
+        "role": "agency_admin | agency_staff",
+        "active": "boolean",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      }
+    },
+    "routes": {
+      "docId": "{routeId}",
+      "fields": {
+        "agencyId": "string",
+        "global": "boolean",
+        "origin": "string",
+        "destination": "string",
+        "fareRwf": "number",
+        "active": "boolean",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      }
+    },
+    "buses": {
+      "docId": "{busId}",
+      "fields": {
+        "agencyId": "string",
+        "routeId": "string",
+        "plateNumber": "string",
+        "capacity": "number",
+        "availableSeats": "number",
+        "active": "boolean",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      }
+    },
+    "agency_secrets": {
+      "docId": "{agencyId}",
+      "fields": {
+        "passwordHash": "string",
+        "updatedAt": "timestamp",
+        "updatedBy": "string"
+      }
+    }
+  },
+  "notes": [
+    "Agency application/approval flow intentionally removed for v2 reset.",
+    "Route creation via Cloud Function intentionally removed for v2 reset.",
+    "Next step: define new v2 flows and reintroduce only required callables."
+  ]
+}

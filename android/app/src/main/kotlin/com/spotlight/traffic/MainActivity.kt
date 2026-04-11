@@ -1,0 +1,5 @@
+package com.spotlight.traffic
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()

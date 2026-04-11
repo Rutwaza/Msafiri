@@ -1,0 +1,54 @@
+{
+  "version": "rtdb-telemetry-v1",
+  "updatedAt": "2026-04-10",
+  "databaseURL": "https://spotlight-traffic-prod-default-rtdb.firebaseio.com",
+  "rootPath": "devices",
+  "compatibility": {
+    "legacyFlatTimeline": true,
+    "normalizedMetaLatestHistory": true
+  },
+  "legacyShape": {
+    "devices/{deviceId}": {
+      "agencyName": "string",
+      "plateNumber": "string",
+      "sits": "number",
+      "-T*": {
+        "lat": "number",
+        "lng": "number",
+        "spd": "number",
+        "hdop": "number",
+        "alt": "number",
+        "bat": "number",
+        "ts": "number"
+      }
+    }
+  },
+  "normalizedShape": {
+    "devices/{deviceId}/meta": {
+      "agencyId": "string",
+      "agencyName": "string",
+      "plateNumber": "string",
+      "sits": "number",
+      "active": "boolean",
+      "updatedAt": "number"
+    },
+    "devices/{deviceId}/latest": {
+      "lat": "number",
+      "lng": "number",
+      "spd": "number",
+      "hdop": "number",
+      "alt": "number",
+      "bat": "number",
+      "ts": "number"
+    },
+    "devices/{deviceId}/history/{pushId}": {
+      "lat": "number",
+      "lng": "number",
+      "spd": "number",
+      "hdop": "number",
+      "alt": "number",
+      "bat": "number",
+      "ts": "number"
+    }
+  }
+}

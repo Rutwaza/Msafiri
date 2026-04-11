@@ -1,0 +1,241 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return signedIn()
+        && (
+          request.auth.token.email == 'nelsonjembe99@gmail.com'
+          || request.auth.token.role == 'super_admin'
+          || request.auth.token.super_admin == true
+        );
+    }
+
+    function hasTrafficProfile() {
+      return signedIn() && exists(/databases/$(database)/documents/traffic_users/$(request.auth.uid));
+    }
+
+    function myProfile() {
+      return get(/databases/$(database)/documents/traffic_users/$(request.auth.uid)).data;
+    }
+
+    function myRole() {
+      return hasTrafficProfile() ? myProfile().role : '';
+    }
+
+    function myAgencyId() {
+      return hasTrafficProfile() ? myProfile().agencyId : null;
+    }
+
+    function isAgencyStaffOrAdmin() {
+      return myRole() == 'agency_staff' || myRole() == 'agency_admin';
+    }
+
+    function canManageAgency(agencyId) {
+      return isSuperAdmin() || (hasTrafficProfile() && isAgencyStaffOrAdmin() && myAgencyId() == agencyId);
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validRole(role) {
+      return role in ['rider', 'agency_staff', 'agency_admin', 'super_admin'];
+    }
+
+    function validUserStatus(status) {
+      return status in ['pending', 'active', 'suspended', 'disabled'];
+    }
+
+    function validBookingStatus(status) {
+      return status in ['booked', 'paid', 'expired', 'cancelled', 'released'];
+    }
+
+    match /traffic_users/{uid} {
+      allow read: if isSelf(uid)
+        || isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && resource.data.agencyId == myAgencyId());
+
+      allow create: if isSelf(uid)
+        && request.resource.data.uid == uid
+        && validRole(request.resource.data.role)
+        && validUserStatus(request.resource.data.status);
+
+      allow update: if isSuperAdmin()
+        || (isSelf(uid)
+          && request.resource.data.uid == uid
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.agencyId == resource.data.agencyId);
+
+      allow delete: if false;
+    }
+
+    match /agency_members/{uid} {
+      allow read: if isSelf(uid)
+        || isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && resource.data.agencyId == myAgencyId());
+      allow write: if isSuperAdmin();
+    }
+
+    match /agencies/{agencyId} {
+      allow read: if signedIn();
+      allow create, update, delete: if canManageAgency(agencyId) || isSuperAdmin();
+    }
+
+    match /routes/{routeId} {
+      allow read: if signedIn();
+      allow create: if isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && request.resource.data.agencyId == myAgencyId());
+      allow update, delete: if isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && resource.data.agencyId == myAgencyId());
+    }
+
+    match /buses/{busId} {
+      allow read: if signedIn();
+      allow create: if isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && request.resource.data.agencyId == myAgencyId());
+      allow update, delete: if isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && resource.data.agencyId == myAgencyId());
+    }
+
+    match /cards/{cardId} {
+      allow read: if isSuperAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid)
+        || (isAgencyStaffOrAdmin() && resource.data.issuerAgencyId == myAgencyId());
+
+      allow create: if isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && request.resource.data.issuerAgencyId == myAgencyId());
+
+      allow update, delete: if isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && resource.data.issuerAgencyId == myAgencyId());
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if isSuperAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid)
+        || (isAgencyStaffOrAdmin() && resource.data.agencyId == myAgencyId());
+
+      allow create: if isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && request.resource.data.agencyId == myAgencyId());
+
+      allow update: if (isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && resource.data.agencyId == myAgencyId()))
+        && validBookingStatus(request.resource.data.status);
+
+      allow delete: if isSuperAdmin();
+    }
+
+    match /card_transactions/{txId} {
+      allow read: if isSuperAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid)
+        || (isAgencyStaffOrAdmin() && resource.data.agencyId == myAgencyId());
+
+      allow create, update, delete: if isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && request.resource.data.agencyId == myAgencyId());
+    }
+
+    match /admin_events/{eventId} {
+      allow read: if isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && resource.data.agencyId == myAgencyId());
+
+      allow create, update, delete: if isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && request.resource.data.agencyId == myAgencyId());
+    }
+
+    match /direction_requests/{requestId} {
+      allow read: if isSuperAdmin()
+        || (signedIn() && resource.data.requestedBy == request.auth.uid)
+        || (isAgencyStaffOrAdmin() && resource.data.agencyId == myAgencyId());
+
+      allow create: if signedIn()
+        && request.resource.data.requestedBy == request.auth.uid;
+
+      allow update, delete: if isSuperAdmin()
+        || (isAgencyStaffOrAdmin() && resource.data.agencyId == myAgencyId());
+    }
+
+    match /agency_applications/{applicationId} {
+      allow read: if isSuperAdmin()
+        || (signedIn()
+          && (
+            resource.data.submittedBy == request.auth.uid
+            || resource.data.ownerUid == request.auth.uid
+          ));
+
+      allow create: if signedIn()
+        && (
+          request.resource.data.submittedBy == request.auth.uid
+          || request.resource.data.ownerUid == request.auth.uid
+        );
+
+      allow update, delete: if isSuperAdmin();
+    }
+
+    match /agency_password_reset_requests/{requestId} {
+      allow read: if isSuperAdmin()
+        || (signedIn() && resource.data.requestedBy == request.auth.uid);
+
+      allow create: if signedIn()
+        && request.resource.data.requestedBy == request.auth.uid;
+
+      allow update, delete: if isSuperAdmin();
+    }
+
+    match /route_directions/{directionId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    match /bus_direction_assignments/{busId} {
+      allow read: if signedIn();
+      allow create: if isSuperAdmin()
+        || (hasTrafficProfile()
+          && myRole() == 'agency_admin'
+          && request.resource.data.agencyId == myAgencyId());
+      allow update, delete: if isSuperAdmin()
+        || (hasTrafficProfile()
+          && myRole() == 'agency_admin'
+          && resource.data.agencyId == myAgencyId());
+    }
+
+    match /agency_direction_fares/{docId} {
+      allow read: if signedIn();
+      allow create: if isSuperAdmin()
+        || (hasTrafficProfile()
+          && myRole() == 'agency_admin'
+          && request.resource.data.agencyId == myAgencyId());
+      allow update, delete: if isSuperAdmin()
+        || (hasTrafficProfile()
+          && myRole() == 'agency_admin'
+          && resource.data.agencyId == myAgencyId());
+    }
+
+    match /seat_locks/{busId} {
+      allow read: if signedIn();
+      allow write: if isSuperAdmin();
+
+      match /seats/{seatNo} {
+        allow read: if signedIn();
+        allow write: if isSuperAdmin();
+      }
+    }
+
+    // Temporary compatibility while some screens still use legacy `users` collection.
+    match /users/{uid} {
+      allow read: if signedIn();
+
+      allow create, update: if isSelf(uid);
+
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

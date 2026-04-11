@@ -1,0 +1,129 @@
+{
+  "version": "traffic-firestore-v1",
+  "updatedAt": "2026-04-09",
+  "collections": {
+    "traffic_users": {
+      "docId": "uid",
+      "required": [
+        "uid",
+        "email",
+        "emailLower",
+        "displayName",
+        "role",
+        "status",
+        "onboarding.completed",
+        "createdAt",
+        "updatedAt",
+        "lastLoginAt"
+      ],
+      "roleEnum": ["rider", "agency_staff", "agency_admin", "super_admin"],
+      "statusEnum": ["pending", "active", "suspended", "disabled"]
+    },
+    "agency_members": {
+      "docId": "uid",
+      "required": ["uid", "agencyId", "role", "active", "createdAt", "updatedAt"]
+    },
+    "agencies": {
+      "docId": "agencyId",
+      "required": ["name", "nameLower", "code", "active", "createdAt", "updatedAt"]
+    },
+    "routes": {
+      "docId": "routeId",
+      "required": [
+        "agencyId",
+        "origin",
+        "destination",
+        "originLower",
+        "destinationLower",
+        "fareRwf",
+        "active",
+        "global",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "buses": {
+      "docId": "busId",
+      "required": [
+        "agencyId",
+        "agencyName",
+        "plateNumber",
+        "plateNumberLower",
+        "routeIds",
+        "availableSeats",
+        "capacity",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "cards": {
+      "docId": "cardId",
+      "required": [
+        "cardId",
+        "userId",
+        "issuerAgencyId",
+        "balanceRwf",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "bookings": {
+      "docId": "bookingId",
+      "required": [
+        "bookingId",
+        "userId",
+        "cardId",
+        "agencyId",
+        "busId",
+        "routeId",
+        "seatNo",
+        "fareRwf",
+        "status",
+        "createdAt",
+        "updatedAt",
+        "expiresAt"
+      ],
+      "statusEnum": ["booked", "paid", "expired", "cancelled", "released"]
+    },
+    "card_transactions": {
+      "docId": "txId",
+      "required": [
+        "txId",
+        "cardId",
+        "userId",
+        "agencyId",
+        "type",
+        "amountDeltaRwf",
+        "balanceAfterRwf",
+        "createdAt"
+      ]
+    },
+    "admin_events": {
+      "docId": "eventId",
+      "required": ["type", "agencyId", "actorId", "actorRole", "description", "createdAt"]
+    },
+    "direction_requests": {
+      "docId": "requestId",
+      "required": [
+        "agencyId",
+        "origin",
+        "destination",
+        "fareProposalRwf",
+        "status",
+        "requestedBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "agency_applications": {
+      "docId": "applicationId",
+      "required": ["agencyName", "submittedBy", "status", "submittedAt", "updatedAt"]
+    },
+    "agency_password_reset_requests": {
+      "docId": "requestId",
+      "required": ["agencyId", "requestedBy", "status", "createdAt", "updatedAt"]
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "450569911476",
+    "firebase_url": "https://spotlight-traffic-prod-default-rtdb.firebaseio.com",
+    "project_id": "spotlight-traffic-prod",
+    "storage_bucket": "spotlight-traffic-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:450569911476:android:b3012cdd8e7bba9f882be1",
+        "android_client_info": {
+          "package_name": "com.spotlight.traffic"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "450569911476-2lq37j2se6thj2vo3ueu3f8rfvaibpl2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1n7QDTRRx5o2Vjac3IWx04WF0YtvJEcc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "450569911476-2lq37j2se6thj2vo3ueu3f8rfvaibpl2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
