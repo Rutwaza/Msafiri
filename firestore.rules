@@ -108,11 +108,12 @@ service cloud.firestore {
         || (signedIn() && resource.data.userId == request.auth.uid)
         || (isAgencyStaffOrAdmin() && resource.data.issuerAgencyId == myAgencyId());
 
-      allow create: if isSuperAdmin()
-        || (isAgencyStaffOrAdmin() && request.resource.data.issuerAgencyId == myAgencyId());
+      allow create, update, delete: if isSuperAdmin();
+    }
 
-      allow update, delete: if isSuperAdmin()
-        || (isAgencyStaffOrAdmin() && resource.data.issuerAgencyId == myAgencyId());
+    match /card_registry/{rfidKey} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
     }
 
     match /bookings/{bookingId} {
@@ -135,16 +136,30 @@ service cloud.firestore {
         || (signedIn() && resource.data.userId == request.auth.uid)
         || (isAgencyStaffOrAdmin() && resource.data.agencyId == myAgencyId());
 
-      allow create, update, delete: if isSuperAdmin()
+      allow create, update: if isSuperAdmin()
         || (isAgencyStaffOrAdmin() && request.resource.data.agencyId == myAgencyId());
+      allow delete: if isSuperAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid)
+        || (isAgencyStaffOrAdmin() && resource.data.agencyId == myAgencyId());
     }
 
     match /admin_events/{eventId} {
       allow read: if isSuperAdmin()
+        || (signedIn() && resource.data.actorId == request.auth.uid)
         || (isAgencyStaffOrAdmin() && resource.data.agencyId == myAgencyId());
 
       allow create, update, delete: if isSuperAdmin()
         || (isAgencyStaffOrAdmin() && request.resource.data.agencyId == myAgencyId());
+    }
+
+    match /user_notifications/{notificationId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+      allow delete: if isSuperAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid);
     }
 
     match /direction_requests/{requestId} {

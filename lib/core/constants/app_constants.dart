@@ -16,7 +16,7 @@ class AppConstants {
 
   // Billing guard: pause Google Maps widget rendering temporarily.
   // Set to false to restore native Google Maps.
-  static const bool pauseGoogleMaps = true;
+  static const bool pauseGoogleMaps = false;
 
   // Pagination
   static const int defaultPageSize = 10;

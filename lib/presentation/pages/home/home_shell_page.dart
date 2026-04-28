@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:spotlight_traffic_app/core/widgets/spotlight_loader.dart';
 import 'package:spotlight_traffic_app/core/widgets/spotlight_toast.dart';
 import 'package:spotlight_traffic_app/presentation/pages/agency/agency_workspace_page.dart';
 import 'package:spotlight_traffic_app/presentation/pages/super_admin/super_admin_console_page.dart';
@@ -36,7 +37,7 @@ class _HomeShellPageState extends State<HomeShellPage> {
             initialBusId: widget.initialBusId,
             embeddedInShell: true,
           ),
-          const _ActivitiesTab(),
+          const _SettingsTab(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -52,8 +53,8 @@ class _HomeShellPageState extends State<HomeShellPage> {
             label: 'Traffic',
           ),
           NavigationDestination(
-            icon: Icon(Icons.receipt_long_rounded),
-            label: 'Activities',
+            icon: Icon(Icons.settings_rounded),
+            label: 'Settings',
           ),
         ],
       ),
@@ -74,6 +75,27 @@ class _AgenciesTabState extends State<_AgenciesTab> {
   final _fx = FirebaseFunctions.instanceFor(region: 'us-central1');
   final _fs = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
+  bool _actionLoading = false;
+  String _actionLoadingText = 'Processing request...';
+
+  Future<T> _runWithActionLoader<T>(
+    String message,
+    Future<T> Function() action,
+  ) async {
+    if (mounted) {
+      setState(() {
+        _actionLoading = true;
+        _actionLoadingText = message;
+      });
+    }
+    try {
+      return await action();
+    } finally {
+      if (mounted) {
+        setState(() => _actionLoading = false);
+      }
+    }
+  }
 
   Future<HttpsCallableResult<dynamic>> _callWithFreshAuth(
     String name,
@@ -146,14 +168,16 @@ class _AgenciesTabState extends State<_AgenciesTab> {
                     style: const TextStyle(color: Colors.white),
                     keyboardType: TextInputType.phone,
                     onChanged: (v) => setM(() => phone = v),
-                    decoration: const InputDecoration(labelText: 'Phone number'),
+                    decoration:
+                        const InputDecoration(labelText: 'Phone number'),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     style: const TextStyle(color: Colors.white),
                     keyboardType: TextInputType.number,
                     onChanged: (v) => setM(() => fleetText = v),
-                    decoration: const InputDecoration(labelText: 'Number of vehicles'),
+                    decoration:
+                        const InputDecoration(labelText: 'Number of vehicles'),
                   ),
                   const SizedBox(height: 8),
                   TextField(
@@ -164,7 +188,8 @@ class _AgenciesTabState extends State<_AgenciesTab> {
                       labelText: 'Agency password',
                       suffixIcon: IconButton(
                         onPressed: () => setM(() => obscure = !obscure),
-                        icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+                        icon: Icon(
+                            obscure ? Icons.visibility_off : Icons.visibility),
                       ),
                     ),
                   ),
@@ -201,7 +226,9 @@ class _AgenciesTabState extends State<_AgenciesTab> {
 
     if (payload == null) return;
     try {
-      await _callWithFreshAuth('submitAgencyApplicationV2', payload);
+      await _runWithActionLoader('Submitting agency request...', () {
+        return _callWithFreshAuth('submitAgencyApplicationV2', payload);
+      });
       _toast('Application submitted. Super admin will review.', success: true);
     } catch (e) {
       _toast('Submit failed: $e');
@@ -235,7 +262,10 @@ class _AgenciesTabState extends State<_AgenciesTab> {
               children: [
                 Text(
                   'Open $agencyName',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18),
                 ),
                 const SizedBox(height: 10),
                 TextField(
@@ -246,7 +276,8 @@ class _AgenciesTabState extends State<_AgenciesTab> {
                     labelText: 'Agency password',
                     suffixIcon: IconButton(
                       onPressed: () => setM(() => obscure = !obscure),
-                      icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+                      icon: Icon(
+                          obscure ? Icons.visibility_off : Icons.visibility),
                     ),
                   ),
                 ),
@@ -254,7 +285,9 @@ class _AgenciesTabState extends State<_AgenciesTab> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: pass.trim().isEmpty ? null : () => Navigator.pop(ctx, true),
+                    onPressed: pass.trim().isEmpty
+                        ? null
+                        : () => Navigator.pop(ctx, true),
                     child: const Text('Open'),
                   ),
                 ),
@@ -267,9 +300,11 @@ class _AgenciesTabState extends State<_AgenciesTab> {
 
     if (shouldOpen != true) return;
     try {
-      await _callWithFreshAuth('openAgencyByPasswordV2', {
-        'agencyId': agencyId,
-        'password': pass.trim(),
+      await _runWithActionLoader('Opening agency workspace...', () {
+        return _callWithFreshAuth('openAgencyByPasswordV2', {
+          'agencyId': agencyId,
+          'password': pass.trim(),
+        });
       });
       if (!mounted) return;
       await Navigator.of(context).push(
@@ -296,7 +331,8 @@ class _AgenciesTabState extends State<_AgenciesTab> {
         title: const Text('Agencies'),
         actions: [
           IconButton(
-            tooltip: isSuperAdmin ? 'Open Super Admin Console' : 'Restricted View',
+            tooltip:
+                isSuperAdmin ? 'Open Super Admin Console' : 'Restricted View',
             onPressed: () async {
               if (!isSuperAdmin) {
                 _toast('Restricted mode: super admins only.', success: true);
@@ -304,7 +340,8 @@ class _AgenciesTabState extends State<_AgenciesTab> {
               }
               if (!mounted) return;
               await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SuperAdminConsolePage()),
+                MaterialPageRoute(
+                    builder: (_) => const SuperAdminConsolePage()),
               );
             },
             icon: Icon(
@@ -315,183 +352,476 @@ class _AgenciesTabState extends State<_AgenciesTab> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _openCreateAgencyForm,
-                icon: const Icon(Icons.add_business_rounded),
-                label: const Text('Create Agency'),
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _openCreateAgencyForm,
+                    icon: const Icon(Icons.add_business_rounded),
+                    label: const Text('Create Agency'),
+                  ),
+                ),
               ),
-            ),
-          ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: _fs
-                  .collection('agencies')
-                  .where('active', isEqualTo: true)
-                  .limit(80)
-                  .snapshots(),
-              builder: (context, snap) {
-                if (snap.hasError) {
-                  return Center(child: Text('${snap.error}'));
-                }
-                if (!snap.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final docs = snap.data!.docs;
-                if (docs.isEmpty) {
-                  return const Center(child: Text('No agencies yet.'));
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 14),
-                  itemCount: docs.length,
-                  itemBuilder: (context, i) {
-                    final d = docs[i];
-                    final m = d.data();
-                    final name = '${m['name'] ?? 'Agency'}';
-                    final code = '${m['code'] ?? ''}'.trim();
-                    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                      stream: uid == null
-                          ? const Stream.empty()
-                          : _fs.collection('agency_members').doc(uid).snapshots(),
-                      builder: (context, memberSnap) {
-                        final member = memberSnap.data?.data() ?? const <String, dynamic>{};
-                        final belongs =
-                            '${member['agencyId'] ?? ''}'.trim() == d.id && member['active'] == true;
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              child: Text(
-                                (code.isNotEmpty ? code : name.substring(0, 1)).toUpperCase(),
+              Expanded(
+                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: _fs
+                      .collection('agencies')
+                      .where('active', isEqualTo: true)
+                      .limit(80)
+                      .snapshots(),
+                  builder: (context, snap) {
+                    if (snap.hasError) {
+                      return Center(child: Text('${snap.error}'));
+                    }
+                    if (!snap.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final docs = snap.data!.docs;
+                    if (docs.isEmpty) {
+                      return const Center(child: Text('No agencies yet.'));
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 14),
+                      itemCount: docs.length,
+                      itemBuilder: (context, i) {
+                        final d = docs[i];
+                        final m = d.data();
+                        final name = '${m['name'] ?? 'Agency'}';
+                        final code = '${m['code'] ?? ''}'.trim();
+                        return StreamBuilder<
+                            DocumentSnapshot<Map<String, dynamic>>>(
+                          stream: uid == null
+                              ? const Stream.empty()
+                              : _fs
+                                  .collection('agency_members')
+                                  .doc(uid)
+                                  .snapshots(),
+                          builder: (context, memberSnap) {
+                            final member = memberSnap.data?.data() ??
+                                const <String, dynamic>{};
+                            final belongs =
+                                '${member['agencyId'] ?? ''}'.trim() == d.id &&
+                                    member['active'] == true;
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  child: Text(
+                                    (code.isNotEmpty
+                                            ? code
+                                            : name.substring(0, 1))
+                                        .toUpperCase(),
+                                  ),
+                                ),
+                                title: Text(name),
+                                subtitle: Text(belongs
+                                    ? 'Owned / member agency'
+                                    : 'Not joined'),
+                                trailing: FilledButton(
+                                  onPressed: belongs
+                                      ? () => _openAgencyByPassword(
+                                            agencyId: d.id,
+                                            agencyName: name,
+                                          )
+                                      : null,
+                                  child: const Text('Open'),
+                                ),
                               ),
-                            ),
-                            title: Text(name),
-                            subtitle: Text(belongs ? 'Owned / member agency' : 'Not joined'),
-                            trailing: FilledButton(
-                              onPressed: belongs
-                                  ? () => _openAgencyByPassword(
-                                        agencyId: d.id,
-                                        agencyName: name,
-                                      )
-                                  : null,
-                              child: const Text('Open'),
-                            ),
-                          ),
+                            );
+                          },
                         );
                       },
                     );
                   },
-                );
-              },
-            ),
+                ),
+              ),
+            ],
           ),
+          if (_actionLoading)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  color: const Color(0xB3000000),
+                  alignment: Alignment.center,
+                  child: Container(
+                    width: 240,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xE610172A),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Row(
+                      children: [
+                        const SpotlightLoader(size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _actionLoadingText,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-class _ActivitiesTab extends StatelessWidget {
-  const _ActivitiesTab();
+class _SettingsTab extends StatefulWidget {
+  const _SettingsTab();
 
   @override
-  Widget build(BuildContext context) {
-    final fs = FirebaseFirestore.instance;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Activities')),
-      body: uid == null
-          ? const Center(child: Text('Sign in required.'))
-          : ListView(
-              padding: const EdgeInsets.all(14),
-              children: [
-                _ActivitySection(
-                  title: 'Top Ups',
-                  stream: fs
-                      .collection('card_transactions')
-                      .where('userId', isEqualTo: uid)
-                      .limit(25)
-                      .snapshots(),
-                ),
-                const SizedBox(height: 12),
-                _ActivitySection(
-                  title: 'Bookings',
-                  stream: fs
-                      .collection('bookings')
-                      .where('userId', isEqualTo: uid)
-                      .limit(25)
-                      .snapshots(),
-                ),
-                const SizedBox(height: 12),
-                _ActivitySection(
-                  title: 'Actions',
-                  stream: fs
-                      .collection('admin_events')
-                      .where('actorId', isEqualTo: uid)
-                      .limit(25)
-                      .snapshots(),
-                ),
-              ],
-            ),
-    );
-  }
+  State<_SettingsTab> createState() => _SettingsTabState();
 }
 
-class _ActivitySection extends StatelessWidget {
-  const _ActivitySection({
-    required this.title,
-    required this.stream,
-  });
+class _SettingsTabState extends State<_SettingsTab> {
+  final _fs = FirebaseFirestore.instance;
+  final _auth = FirebaseAuth.instance;
+  bool _loading = false;
 
-  final String title;
-  final Stream<QuerySnapshot<Map<String, dynamic>>> stream;
+  Future<T> _runWithLoader<T>(String text, Future<T> Function() action) async {
+    if (mounted) setState(() => _loading = true);
+    try {
+      return await action();
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<int> _deleteByUser({
+    required String collection,
+    required String uid,
+    List<String>? excludeTypes,
+  }) async {
+    final excluded = excludeTypes
+            ?.map((type) => type.toLowerCase())
+            .toSet() ??
+        <String>{};
+    int deleted = 0;
+    while (true) {
+      final snap = await _fs
+          .collection(collection)
+          .where('userId', isEqualTo: uid)
+          .limit(300)
+          .get();
+      if (snap.docs.isEmpty) break;
+      final batch = _fs.batch();
+      var batchCount = 0;
+      for (final d in snap.docs) {
+        final type = '${d.data()['type'] ?? ''}'.toLowerCase();
+        if (excluded.contains(type)) {
+          continue;
+        }
+        batch.delete(d.reference);
+        batchCount += 1;
+      }
+      if (batchCount > 0) {
+        await batch.commit();
+        deleted += batchCount;
+      }
+      if (snap.docs.length < 300) break;
+    }
+    return deleted;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: stream,
-              builder: (context, snap) {
-                if (snap.hasError) return Text('${snap.error}');
-                if (!snap.hasData) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: LinearProgressIndicator(minHeight: 2),
-                  );
-                }
-                final docs = snap.data!.docs;
-                if (docs.isEmpty) return const Text('No records yet.');
-                return Column(
-                  children: docs.take(5).map((d) {
-                    final m = d.data();
-                    final ts = m['updatedAt'] ?? m['createdAt'] ?? m['timestamp'];
-                    final when = ts is Timestamp ? ts.toDate().toLocal().toString() : '-';
-                    final label = '${m['type'] ?? m['status'] ?? d.id}';
-                    return ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(label),
-                      subtitle: Text(when, maxLines: 1, overflow: TextOverflow.ellipsis),
+    final uid = _auth.currentUser?.uid;
+    const options = <int?>[null, 1, 2, 3, 4, 5, 6, 7];
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      body: uid == null
+          ? const Center(child: Text('Sign in required.'))
+          : Stack(
+              children: [
+                StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                  stream: _fs.collection('traffic_users').doc(uid).snapshots(),
+                  builder: (context, snap) {
+                    final data = snap.data?.data() ?? const <String, dynamic>{};
+                    final pref = Map<String, dynamic>.from(
+                        data['preferences'] as Map? ?? const {});
+                    final auto = Map<String, dynamic>.from(
+                        pref['autoClear'] as Map? ?? const {});
+                    int? notiDays = (auto['notificationsDays'] as num?)?.toInt();
+                    int? historyDays = (auto['historyDays'] as num?)?.toInt();
+                    if (notiDays != null && (notiDays < 1 || notiDays > 7)) {
+                      notiDays = null;
+                    }
+                    if (historyDays != null &&
+                        (historyDays < 1 || historyDays > 7)) {
+                      historyDays = null;
+                    }
+
+                    return ListView(
+                      padding: const EdgeInsets.all(14),
+                      children: [
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Auto Clear',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 10),
+                                DropdownButtonFormField<int?>(
+                                  initialValue: notiDays,
+                                  decoration: const InputDecoration(
+                                    labelText:
+                                        'Notifications auto-clear interval',
+                                  ),
+                                  items: options
+                                      .map(
+                                        (d) => DropdownMenuItem<int?>(
+                                          value: d,
+                                          child: Text(d == null
+                                              ? 'Off'
+                                              : 'Every $d day(s)'),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (v) async {
+                                    try {
+                                      await _runWithLoader(
+                                          'Saving notification policy...', () {
+                                        return _fs
+                                            .collection('traffic_users')
+                                            .doc(uid)
+                                            .set({
+                                          'preferences': {
+                                            'autoClear': {
+                                              'notificationsDays': v,
+                                              'historyDays': historyDays,
+                                              'updatedAt':
+                                                  FieldValue.serverTimestamp(),
+                                            }
+                                          }
+                                        }, SetOptions(merge: true));
+                                      });
+                                      if (!context.mounted) return;
+                                      showSpotlightToast(
+                                        context,
+                                        'Notifications auto-clear updated.',
+                                        success: true,
+                                      );
+                                    } catch (e) {
+                                      if (!context.mounted) return;
+                                      showSpotlightToast(
+                                        context,
+                                        'Save failed: $e',
+                                        success: false,
+                                      );
+                                    }
+                                  },
+                                ),
+                                const SizedBox(height: 10),
+                                DropdownButtonFormField<int?>(
+                                  initialValue: historyDays,
+                                  decoration: const InputDecoration(
+                                    labelText: 'History auto-clear interval',
+                                  ),
+                                  items: options
+                                      .map(
+                                        (d) => DropdownMenuItem<int?>(
+                                          value: d,
+                                          child: Text(d == null
+                                              ? 'Off'
+                                              : 'Every $d day(s)'),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (v) async {
+                                    try {
+                                      await _runWithLoader(
+                                          'Saving history policy...', () {
+                                        return _fs
+                                            .collection('traffic_users')
+                                            .doc(uid)
+                                            .set({
+                                          'preferences': {
+                                            'autoClear': {
+                                              'notificationsDays': notiDays,
+                                              'historyDays': v,
+                                              'updatedAt':
+                                                  FieldValue.serverTimestamp(),
+                                            }
+                                          }
+                                        }, SetOptions(merge: true));
+                                      });
+                                      if (!context.mounted) return;
+                                      showSpotlightToast(
+                                        context,
+                                        'History auto-clear updated.',
+                                        success: true,
+                                      );
+                                    } catch (e) {
+                                      if (!context.mounted) return;
+                                      showSpotlightToast(
+                                        context,
+                                        'Save failed: $e',
+                                        success: false,
+                                      );
+                                    }
+                                  },
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Max interval is 7 days.',
+                                  style: TextStyle(color: Colors.black54),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Quick Actions',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () async {
+                                          try {
+                                            final count = await _runWithLoader(
+                                                'Clearing notifications...', () {
+                                              return _deleteByUser(
+                                                collection: 'user_notifications',
+                                                uid: uid,
+                                              );
+                                            });
+                                            if (!context.mounted) return;
+                                            showSpotlightToast(
+                                              context,
+                                              'Cleared $count notification(s).',
+                                              success: true,
+                                            );
+                                          } catch (e) {
+                                            if (!context.mounted) return;
+                                            showSpotlightToast(
+                                              context,
+                                              'Clear failed: $e',
+                                              success: false,
+                                            );
+                                          }
+                                        },
+                                        icon:
+                                            const Icon(Icons.delete_sweep_rounded),
+                                        label:
+                                            const Text('Clear Notifications'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () async {
+                                          try {
+                                            final count = await _runWithLoader(
+                                                'Clearing history...', () {
+                                              return _deleteByUser(
+                                                collection: 'card_transactions',
+                                                uid: uid,
+                                                excludeTypes: const [
+                                                  'ride_payment',
+                                                  'top_up',
+                                                ],
+                                              );
+                                            });
+                                            if (!context.mounted) return;
+                                            showSpotlightToast(
+                                              context,
+                                              'Cleared $count history record(s).',
+                                              success: true,
+                                            );
+                                          } catch (e) {
+                                            if (!context.mounted) return;
+                                            showSpotlightToast(
+                                              context,
+                                              'Clear failed: $e',
+                                              success: false,
+                                            );
+                                          }
+                                        },
+                                        icon:
+                                            const Icon(Icons.history_toggle_off),
+                                        label: const Text('Clear History'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     );
-                  }).toList(),
-                );
-              },
+                  },
+                ),
+                if (_loading)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        color: const Color(0x66000000),
+                        alignment: Alignment.center,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xE610172A),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SpotlightLoader(size: 22),
+                              SizedBox(width: 10),
+                              Text(
+                                'Applying...',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-          ],
-        ),
-      ),
     );
   }
 }

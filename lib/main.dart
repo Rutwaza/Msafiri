@@ -1,11 +1,13 @@
 import 'dart:ui';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:spotlight_traffic_app/core/constants/app_constants.dart';
+import 'package:spotlight_traffic_app/core/services/push_notification_service.dart';
 import 'package:spotlight_traffic_app/firebase_options.dart';
 import 'package:spotlight_traffic_app/presentation/pages/admin/admin_dashboard_page.dart';
 import 'package:spotlight_traffic_app/presentation/pages/auth/login_page.dart';
@@ -15,6 +17,7 @@ import 'package:spotlight_traffic_app/presentation/pages/onboarding/onboarding_p
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
@@ -38,6 +41,7 @@ class SpotLightTrafficApp extends StatefulWidget {
 
 class _SpotLightTrafficAppState extends State<SpotLightTrafficApp> {
   late Future<void> _firebaseInitFuture;
+  bool _pushInitDone = false;
 
   @override
   void initState() {
@@ -93,13 +97,34 @@ class _SpotLightTrafficAppState extends State<SpotLightTrafficApp> {
     ],
   );
 
-  Future<void> _initFirebase() {
+  Future<void> _initFirebase() async {
     if (Firebase.apps.isNotEmpty) {
-      return Future.value();
+      if (!_pushInitDone) {
+        _pushInitDone = true;
+        await PushNotificationService.initialize(
+          onOpenData: _handlePushOpenData,
+        );
+      }
+      return;
     }
-    return Firebase.initializeApp(
+    await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    if (!_pushInitDone) {
+      _pushInitDone = true;
+      await PushNotificationService.initialize(
+        onOpenData: _handlePushOpenData,
+      );
+    }
+  }
+
+  Future<void> _handlePushOpenData(Map<String, dynamic> data) async {
+    final rawBusId = '${data['busId'] ?? ''}'.trim();
+    if (rawBusId.isNotEmpty) {
+      _router.go('${AppRoutes.trafficManagement}?busId=$rawBusId');
+      return;
+    }
+    _router.go(AppRoutes.trafficManagement);
   }
 
   void _retryBootstrap() {

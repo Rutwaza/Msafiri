@@ -28,6 +28,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  bool _passwordVisible = false;
+  bool _confirmPasswordVisible = false;
   bool _isLoading = false;
 
   @override
@@ -494,9 +496,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           children: [
             Positioned.fill(
               child: Opacity(
-                opacity: isDark ? 0.5 : 0.42,
+                opacity: isDark ? 0.62 : 0.5,
                 child: Image.asset(
-                  'assets/images/chat_bg.gif',
+                  'assets/images/bg.jpg',
                   fit: BoxFit.cover,
                   alignment: Alignment.center,
                   filterQuality: FilterQuality.low,
@@ -507,8 +509,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             Positioned.fill(
               child: Container(
                 color: isDark
-                    ? Colors.black.withOpacity(0.34)
-                    : Colors.black.withOpacity(0.18),
+                    ? Colors.black.withOpacity(0.46)
+                    : Colors.black.withOpacity(0.3),
               ),
             ),
             SingleChildScrollView(
@@ -521,7 +523,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     const SizedBox(height: 80),
                     Center(
                       child: Text(
-                        'Create Traffic Account',
+                        'Create Msafiri Account',
                         textAlign: TextAlign.center,
                         style: Theme.of(context)
                             .textTheme
@@ -542,7 +544,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     const SizedBox(height: 8),
                     Center(
                       child: Text(
-                        'Join SpotLight Traffic operations',
+                        'Join Msafiri transport operations',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               color: Colors.white70,
@@ -552,7 +554,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     const SizedBox(height: 48),
                     AppTextField(
                       controller: _usernameController,
-                      label: 'Username',
+                      label: '',
                       hintText: 'lowercase, numbers, . or _',
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
@@ -585,7 +587,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     const SizedBox(height: 16),
                     AppTextField(
                       controller: _emailController,
-                      label: 'Email',
+                      label: '',
                       hintText: 'Enter your email',
                       keyboardType: TextInputType.emailAddress,
                       fillColor: fieldFillColor,
@@ -613,9 +615,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     const SizedBox(height: 16),
                     AppTextField(
                       controller: _passwordController,
-                      label: 'Password',
+                      label: '',
                       hintText: 'Enter your password',
-                      obscureText: true,
+                      obscureText: !_passwordVisible,
                       fillColor: fieldFillColor,
                       textColor: Colors.white,
                       hintColor: Colors.white60,
@@ -627,6 +629,19 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       prefixIcon: const Icon(
                         Icons.lock_outline_rounded,
                         color: Colors.white70,
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _passwordVisible
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.white70,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _passwordVisible = !_passwordVisible;
+                          });
+                        },
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -641,9 +656,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     const SizedBox(height: 16),
                     AppTextField(
                       controller: _confirmPasswordController,
-                      label: 'Confirm Password',
+                      label: '',
                       hintText: 'Confirm your password',
-                      obscureText: true,
+                      obscureText: !_confirmPasswordVisible,
                       fillColor: fieldFillColor,
                       textColor: Colors.white,
                       hintColor: Colors.white60,
@@ -656,6 +671,19 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         Icons.verified_user_outlined,
                         color: Colors.white70,
                       ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _confirmPasswordVisible
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.white70,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _confirmPasswordVisible = !_confirmPasswordVisible;
+                          });
+                        },
+                      ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please confirm your password';
@@ -667,10 +695,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       },
                     ),
                     const SizedBox(height: 32),
-                    AppButton(
-                      text: 'Create Account',
-                      onPressed: _handleRegister,
-                      isLoading: _isLoading,
+                    Center(
+                      child: SizedBox(
+                        width: 240,
+                        child: AppButton(
+                          text: 'Create Account',
+                          onPressed: _handleRegister,
+                          isLoading: _isLoading,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 24),
                     const Row(

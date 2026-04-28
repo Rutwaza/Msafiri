@@ -26,6 +26,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _passwordVisible = false;
   bool _isLoading = false;
 
   @override
@@ -475,9 +476,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           children: [
             Positioned.fill(
               child: Opacity(
-                opacity: isDark ? 0.5 : 0.42,
+                opacity: isDark ? 0.62 : 0.5,
                 child: Image.asset(
-                  'assets/images/chat_bg.gif',
+                  'assets/images/bg.jpg',
                   fit: BoxFit.cover,
                   alignment: Alignment.center,
                   filterQuality: FilterQuality.low,
@@ -488,8 +489,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             Positioned.fill(
               child: Container(
                 color: isDark
-                    ? Colors.black.withOpacity(0.34)
-                    : Colors.black.withOpacity(0.18),
+                    ? Colors.black.withOpacity(0.46)
+                    : Colors.black.withOpacity(0.3),
               ),
             ),
             SingleChildScrollView(
@@ -502,7 +503,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     // Header
                     const Center(
                       child: Text(
-                        'Welcome Back to SpotLight Traffic',
+                        'Welcome Back to Msafiri',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 32,
@@ -568,7 +569,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             label: 'Password',
                             hintText: 'Enter your password',
                             controller: _passwordController,
-                            obscureText: true,
+                            obscureText: !_passwordVisible,
                             fillColor: fieldFillColor,
                             textColor: Colors.white,
                             hintColor: Colors.white60,
@@ -580,6 +581,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             prefixIcon: const Icon(
                               Icons.lock_outline_rounded,
                               color: Colors.white70,
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _passwordVisible
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.white70,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _passwordVisible = !_passwordVisible;
+                                });
+                              },
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
@@ -594,10 +608,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           ),
                           const SizedBox(height: 24),
                           // Login Button
-                          AppButton(
-                            text: 'Sign In',
-                            onPressed: _handleLogin,
-                            isLoading: _isLoading,
+                          Center(
+                            child: SizedBox(
+                              width: 240,
+                              child: AppButton(
+                                text: 'Sign In',
+                                onPressed: _handleLogin,
+                                isLoading: _isLoading,
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 24),
                           // Forgot Password

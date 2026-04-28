@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "450569911476-ujilde9vfmjmsrmja730q4apm31vcjd5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.spotlight.traffic",
+            "certificate_hash": "68d8c41dd0f5a20d8d9d72d77de2820b47627a7e"
+          }
+        },
+        {
           "client_id": "450569911476-2lq37j2se6thj2vo3ueu3f8rfvaibpl2.apps.googleusercontent.com",
           "client_type": 3
         }

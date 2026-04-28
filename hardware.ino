@@ -42,9 +42,9 @@ const char* AGENCY_NAME = "Ritco";
 const char* PLATE_NUMBER = "RAA123A";
 const int DEFAULT_SITS = 28;
 
-// Cloud Function for RFID tap event (fill after deploy)
+// Cloud Function for RFID tap event (device-authenticated endpoint)
 const char* TAP_ENDPOINT =
-    "https://us-central1-bussinessfinder-327f5.cloudfunctions.net/tapCard";
+    "https://us-central1-spotlight-traffic-prod.cloudfunctions.net/tapCardDeviceV2";
 const char* DEVICE_SECRET = "Spot_Rt_01";
 
 const unsigned long TELEMETRY_INTERVAL_MS = 4000;
@@ -191,8 +191,10 @@ String metadataJson() {
 String tapJson(const String& uidHex) {
   String json = "{";
   json += "\"busId\":\"" + String(BUS_ID) + "\"";
-  json += ",\"plateNumber\":\"" + String(PLATE_NUMBER) + "\"";
-  json += ",\"cardId\":\"" + uidHex + "\"";
+  json += ",\"rfidUid\":\"" + uidHex + "\"";
+  // Optional: include seatNo when conductor selects a specific seat on device UI.
+  // If omitted, backend pays all 'booked' seats for this card on this bus in one tap.
+  // json += ",\"seatNo\":5";
   json += ",\"deviceSecret\":\"" + String(DEVICE_SECRET) + "\"";
   json += ",\"deviceTs\":" + String((unsigned long)(millis() / 1000));
   json += "}";
